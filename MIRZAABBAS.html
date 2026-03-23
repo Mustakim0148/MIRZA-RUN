@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Mirza Run - MUKAMUMUN LIMITED 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Arial', sans-serif;
+            touch-action: none; 
+            user-select: none;
+            width: 100vw;
+            height: 100vh;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+        canvas {
+            display: block;
+            background-color: #050505;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; 
+        }
+
+        #video-layer {
+            position: absolute;
+            inset: 0;
+            z-index: 100;
+            display: none;
+            background: #000;
+        }
+        #gameOverVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+            z-index: 10;
+            display: none;
+        }
+
+        #start-menu, #overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            background: rgba(0,0,0,0.85);
+            text-align: center;
+        }
+
+        #start-menu {
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://i.postimg.cc/WzGc4rQM/1_Photoroom.png') center/cover;
+        }
+
+        .menu-btn {
+            background: #fbbf24;
+            color: #000;
+            font-weight: 900;
+            padding: 15px 45px;
+            margin: 8px;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            border: none;
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+            min-width: 220px;
+            transition: transform 0.1s;
+        }
+        .menu-btn:active { transform: scale(0.95); }
+
+        .exit-btn {
+            background: #ef4444;
+            color: white;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+        }
+
+        #loading-screen {
+            position: absolute;
+            inset: 0;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            color: #fbbf24;
+            flex-direction: column;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="loading-screen">
+    <div class="mb-4 text-2xl font-black italic">লোড হচ্ছে...</div>
+    <div id="load-progress" class="text-xs font-mono">0%</div>
+</div>
+
+<div id="game-container">
+    <div id="video-layer">
+        <video id="gameOverVideo" playsinline preload="auto" crossOrigin="anonymous">
+            <source src="https://files.catbox.moe/8vqslr.mp4" type="video/mp4">
+        </video>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Start Menu -->
+    <div id="start-menu" class="hidden">
+        <h1 class="text-7xl font-black mb-10 text-yellow-400 italic drop-shadow-lg text-center">MIRZA RUN</h1>
+        <button id="startBtn" class="menu-btn">START</button>
+        <button id="exitBtnMain" class="menu-btn exit-btn">EXIT</button>
+    </div>
+
+    <!-- Gameplay UI -->
+    <div id="ui-layer">
+        <div class="bg-black/80 p-4 rounded-xl border-l-4 border-yellow-500 shadow-2xl">
+            <p class="text-yellow-400 font-black text-2xl uppercase italic">চাঁদা: <span id="scoreVal">0</span></p>
+            <p class="text-cyan-400 text-xs font-mono">BEST: <span id="highScoreVal">0</span></p>
+        </div>
+    </div>
+
+    <!-- Game Over Overlay -->
+    <div id="overlay" class="hidden">
+        <h1 class="text-6xl font-black text-red-600 mb-2 italic text-center">ধরা খেয়ে গেসো!</h1>
+        <p id="finalScoreText" class="text-3xl text-yellow-400 mb-8 font-black text-center"></p>
+        <button id="retryBtn" class="menu-btn">RETRY</button>
+        <button id="homeBtn" class="menu-btn" style="background: #3b82f6; color: white;">MAIN MENU</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const video = document.getElementById('gameOverVideo');
+    const videoLayer = document.getElementById('video-layer');
+    const startMenu = document.getElementById('start-menu');
+    const overlay = document.getElementById('overlay');
+    const scoreVal = document.getElementById('scoreVal');
+    const highScoreVal = document.getElementById('highScoreVal');
+    const uiLayer = document.getElementById('ui-layer');
+    const loadProgress = document.getElementById('load-progress');
+
+    const sounds = {
+        coinSfx: new Audio('https://files.catbox.moe/4q2wx6.mp3'),
+        takaSfx: new Audio('https://files.catbox.moe/spgkal.mp3'),
+        death: new Audio('https://files.catbox.moe/x2fqpw.mp3'),
+        bgm: new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'),
+        postVideoSfx: new Audio('https://files.catbox.moe/74jy0s.mp3') // New Sound after video
+    };
+    sounds.bgm.loop = true;
+    sounds.bgm.volume = 0.4;
+
+    const V_WIDTH = 1200;
+    const V_HEIGHT = 600;
+    const GROUND_Y = 530;
+
+    const imgs = {};
+    const sources = {
+        mirza: 'https://i.postimg.cc/cHGxhs7P/mirza.png',
+        nasir: 'https://i.postimg.cc/Kz7ZsdJ9/nasir.png',
+        bg: 'https://i.postimg.cc/WzGc4rQM/1_Photoroom.png',
+        tk1000: 'https://i.postimg.cc/J4W5Hgy2/download.jpg',
+        tk500: 'https://i.postimg.cc/Z0k389KN/BGD-P034-B329-500-TAK-xs.jpg',
+        tk200: 'https://i.postimg.cc/0N74Dmkj/2k.jpg',
+        coin: 'https://i.postimg.cc/ncHQJtj4/ba-la-da-sa-paya-sa-Bangladeshi-Coin-Front-Part.png'
+    };
+
+    let loaded = 0;
+    const totalAssets = Object.keys(sources).length;
+
+    Object.keys(sources).forEach(key => {
+        imgs[key] = new Image();
+        imgs[key].src = sources[key];
+        imgs[key].onload = () => {
+            loaded++;
+            loadProgress.innerText = Math.floor((loaded / totalAssets) * 100) + "%";
+            if(loaded >= totalAssets) {
+                setTimeout(() => {
+                    document.getElementById('loading-screen').classList.add('hidden');
+                    startMenu.classList.remove('hidden');
+                }, 500);
+            }
+        };
+    });
+
+    let gameActive = false;
+    let score = 0;
+    let gameSpeed = 9.5;
+    let bgX = 0;
+    let frame = 0;
+    let lastRareTakaSpawnTime = 0;
+    let highScore = localStorage.getItem('mirza_high_v3') || 0;
+    highScoreVal.innerText = highScore;
+
+    const player = { x: 150, y: 0, w: 80, h: 150, vY: 0, jump: -20, grav: 0.95, onGround: false };
+    let obstacles = [];
+    let items = [];
+
+    function resize() {
+        canvas.width = V_WIDTH;
+        canvas.height = V_HEIGHT;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    async function preWarmVideo() {
+        try { video.muted = true; await video.play(); video.pause(); video.currentTime = 0; video.muted = false; } catch(e) {}
+    }
+
+    function unlockAudio() {
+        Object.values(sounds).forEach(s => { s.play().then(() => s.pause()).catch(() => {}); });
+        sounds.bgm.play().catch(() => {});
+    }
+
+    function jumpAction() {
+        if(gameActive && player.onGround) { player.vY = player.jump; player.onGround = false; }
+    }
+
+    window.addEventListener('keydown', e => { if(e.code === 'Space' || e.code === 'ArrowUp') jumpAction(); });
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); jumpAction(); }, {passive: false});
+    canvas.addEventListener('mousedown', (e) => { if(e.button === 0) jumpAction(); });
+
+    document.getElementById('startBtn').onclick = startGame;
+    document.getElementById('retryBtn').onclick = startGame;
+    
+    document.getElementById('exitBtnMain').onclick = () => {
+        if(confirm("Sir, mission ki cancel korben?")) { window.close(); window.location.href = "about:blank"; }
+    };
+
+    document.getElementById('homeBtn').onclick = () => {
+        overlay.classList.add('hidden');
+        startMenu.classList.remove('hidden');
+        uiLayer.style.display = 'none';
+        sounds.postVideoSfx.pause();
+        sounds.postVideoSfx.currentTime = 0;
+    };
+
+    function startGame() {
+        unlockAudio();
+        preWarmVideo();
+        gameActive = true;
+        score = 0;
+        gameSpeed = 9.5;
+        frame = 0;
+        lastRareTakaSpawnTime = Date.now();
+        obstacles = [];
+        items = [];
+        player.y = GROUND_Y - player.h;
+        player.vY = 0;
+        
+        startMenu.classList.add('hidden');
+        overlay.classList.add('hidden');
+        videoLayer.style.display = 'none';
+        uiLayer.style.display = 'block';
+        scoreVal.innerText = '0';
+
+        sounds.postVideoSfx.pause();
+        sounds.postVideoSfx.currentTime = 0;
+        
+        requestAnimationFrame(update);
+    }
+
+    function update() {
+        if(!gameActive) return;
+        ctx.clearRect(0,0,V_WIDTH, V_HEIGHT);
+
+        bgX -= gameSpeed * 0.6;
+        if(bgX <= -V_WIDTH) bgX = 0;
+        ctx.drawImage(imgs.bg, bgX, 0, V_WIDTH, V_HEIGHT);
+        ctx.drawImage(imgs.bg, bgX + V_WIDTH, 0, V_WIDTH, V_HEIGHT);
+
+        player.vY += player.grav;
+        player.y += player.vY;
+        if(player.y > GROUND_Y - player.h) {
+            player.y = GROUND_Y - player.h;
+            player.vY = 0;
+            player.onGround = true;
+        }
+        ctx.drawImage(imgs.mirza, player.x, player.y, player.w, player.h);
+
+        // Nasir Spawn Logic
+        if(frame % 130 === 0) {
+            obstacles.push({ x: V_WIDTH, y: GROUND_Y - 145, w: 95, h: 145 });
+        }
+
+        // Coins and Taka Spawn Logic
+        const currentTime = Date.now();
+        const safetyZone = 250; 
+
+        // 1. Normal Coins Spawn
+        if(frame % 45 === 0) {
+            let canSpawnCoin = true;
+            obstacles.forEach(obs => {
+                if (V_WIDTH > obs.x - safetyZone && V_WIDTH < obs.x + obs.w + safetyZone) {
+                    canSpawnCoin = false;
+                }
+            });
+
+            if (canSpawnCoin) {
+                items.push({ x: V_WIDTH, y: 180 + Math.random() * 220, w: 60, h: 40, type: 'coin', points: 1 });
+            }
+        }
+
+        // 2. Rare Taka Note Spawn
+        const nextSpawnDelay = 20000 + Math.random() * 5000;
+        if (currentTime - lastRareTakaSpawnTime > nextSpawnDelay) {
+            let rand = Math.random();
+            let type, points;
+            
+            if (rand > 0.90) { type = 'tk1000'; points = 1000; }
+            else if (rand > 0.60) { type = 'tk500'; points = 500; }
+            else { type = 'tk200'; points = 200; }
+
+            items.push({ x: V_WIDTH, y: 200 + Math.random() * 100, w: 90, h: 45, type: type, points: points });
+            lastRareTakaSpawnTime = currentTime;
+        }
+
+        // Update Obstacles
+        for(let i = obstacles.length-1; i>=0; i--) {
+            let o = obstacles[i];
+            o.x -= gameSpeed;
+            ctx.drawImage(imgs.nasir, o.x, o.y, o.w, o.h);
+            
+            const pBox = { x: player.x + 35, y: player.y + 25, w: player.w - 70, h: player.h - 40 };
+            const oBox = { x: o.x + 45, y: o.y + 35, w: o.w - 90, h: o.h - 55 };
+            if(pBox.x < oBox.x + oBox.w && pBox.x + pBox.w > oBox.x && pBox.y < oBox.y + oBox.h && pBox.y + pBox.h > oBox.y) gameOver();
+            if(o.x < -150) obstacles.splice(i, 1);
+        }
+
+        // Update Items
+        for(let i = items.length-1; i>=0; i--) {
+            let it = items[i];
+            it.x -= gameSpeed;
+            ctx.drawImage(imgs[it.type], it.x, it.y, it.w, it.h);
+
+            if(player.x < it.x + it.w && player.x + player.w > it.x && player.y < it.y + it.h && player.y + player.h > it.y) {
+                score += it.points;
+                scoreVal.innerText = score;
+                const s = (it.type === 'coin' ? sounds.coinSfx : sounds.takaSfx).cloneNode();
+                s.volume = 0.5; s.play();
+                items.splice(i, 1);
+            }
+            if(it.x < -100) items.splice(i, 1);
+        }
+
+        frame++;
+        if(frame % 1000 === 0) gameSpeed += 0.4;
+        requestAnimationFrame(update);
+    }
+
+    function gameOver() {
+        gameActive = false;
+        sounds.bgm.pause();
+        sounds.death.play();
+        uiLayer.style.display = 'none';
+        
+        if(score > highScore) {
+            highScore = score;
+            localStorage.setItem('mirza_high_v3', highScore);
+            highScoreVal.innerText = highScore;
+        }
+
+        videoLayer.style.display = 'block';
+        video.currentTime = 0;
+        video.playbackRate = 1.15;
+        
+        const playPromise = video.play();
+        if (playPromise !== undefined) { playPromise.catch(() => showFinalOverlay()); }
+        video.onended = showFinalOverlay;
+    }
+
+    function showFinalOverlay() {
+        videoLayer.style.display = 'none';
+        overlay.classList.remove('hidden');
+        document.getElementById('finalScoreText').innerText = "মোট চাঁদা: " + score;
+        
+        // Play the new sound after video ends
+        sounds.postVideoSfx.play().catch(e => console.log("Sound error:", e));
+    }
+</script>
+</body>
+</html>
