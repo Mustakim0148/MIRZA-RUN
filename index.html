@@ -3,15 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
-    <!-- গুগল ভেরিফিকেশন মেটা ট্যাগ -->
-    <meta name="google-site-verification" content="S4Lza4jrNSGFYGlr44wqOlT-xesr1w9HENn2NNxL5kU" />
-    
-    <!-- আপনার গেমের নতুন লোগো (Favicon) -->
-    <link rel="icon" type="image/x-icon" href="icon.ico">
-
     <title>Mirza Run - © MUKAMUMUN LIMITED</title>
-    
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             margin: 0;
@@ -44,6 +37,21 @@
             aspect-ratio: 16 / 9;
         }
 
+        /* Notification Pop-up Style */
+        #notify-popup {
+            position: absolute;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            transition: top 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            width: 90%;
+            max-width: 420px;
+        }
+        #notify-popup.active {
+            top: 20px;
+        }
+
         #video-layer {
             position: absolute;
             inset: 0;
@@ -57,7 +65,6 @@
             object-fit: contain;
         }
 
-        /* UI Score Card */
         #ui-layer {
             position: absolute;
             top: 25px;
@@ -65,30 +72,6 @@
             pointer-events: none;
             z-index: 10;
             display: none;
-        }
-        .score-card {
-            background-color: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            padding: 1rem;
-            border-radius: 0.5rem;
-            border-left: 4px solid #eab308;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
-        }
-        .score-title {
-            color: #facc15;
-            font-weight: 900;
-            font-size: 1.5rem;
-            text-transform: uppercase;
-            font-style: italic;
-            margin: 0;
-        }
-        .record-title {
-            color: #22d3ee;
-            font-size: 0.75rem;
-            font-family: monospace;
-            margin-top: 0.25rem;
-            margin-bottom: 0;
         }
 
         #start-menu, #overlay {
@@ -105,15 +88,6 @@
 
         #start-menu {
             background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://i.postimg.cc/WzGc4rQM/1_Photoroom.png') center/cover;
-        }
-
-        .menu-title {
-            font-size: 3.75rem;
-            font-weight: 900;
-            margin-bottom: 2rem;
-            color: #facc15;
-            font-style: italic;
-            filter: drop-shadow(0 20px 13px rgba(0,0,0,0.3));
         }
 
         .menu-btn {
@@ -152,32 +126,6 @@
             flex-direction: column;
         }
 
-        /* Overlay Game Over */
-        .game-over-title {
-            font-size: 3rem;
-            font-weight: 900;
-            color: #dc2626;
-            margin-bottom: 0.5rem;
-            font-style: italic;
-        }
-        .final-score-text {
-            font-size: 1.5rem;
-            color: #facc15;
-            margin-bottom: 2rem;
-            font-weight: 700;
-        }
-        .button-group {
-            display: flex;
-            gap: 1rem;
-        }
-        .home-btn-blue {
-            background-color: #3b82f6 !important;
-            color: white !important;
-        }
-        .home-btn-blue:hover {
-            background-color: #60a5fa !important;
-        }
-
         /* Fixed One-line Copyright Tag */
         .copyright-tag {
             position: absolute;
@@ -194,7 +142,7 @@
             line-height: 1;
         }
         .copyright-tag span {
-            font-size: 14px;
+            font-size: 14px; /* Makes 'C' clear and visible */
             margin-right: 4px;
             font-weight: 900;
             color: rgba(255, 255, 255, 0.5);
@@ -206,12 +154,30 @@
 <body>
 
 <div id="loading-screen">
-    <div class="mb-2 text-sm font-bold opacity-60" style="margin-bottom: 8px; font-size: 12px; opacity: 0.6;">© MUKAMUMUN LTD 2026</div>
-    <div class="mb-4 text-2xl font-black italic" style="margin-bottom: 16px; font-size: 24px; font-weight: 900; font-style: italic;">লোড হচ্ছে...</div>
-    <div id="load-progress" class="text-xs font-mono" style="font-size: 12px; font-family: monospace;">0%</div>
+    <div class="mb-2 text-sm font-bold opacity-60">© MUKAMUMUN LTD 2026</div>
+    <div class="mb-4 text-2xl font-black italic">লোড হচ্ছে...</div>
+    <div id="load-progress" class="text-xs font-mono">0%</div>
 </div>
 
 <div id="game-container">
+    <div id="notify-popup" class="bg-zinc-900 border-b-4 border-yellow-500 rounded-2xl p-5 shadow-2xl flex flex-col gap-4">
+        <div class="flex items-center gap-4">
+            <div class="bg-yellow-500 p-2.5 rounded-xl shadow-lg shadow-yellow-500/20">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-white text-sm font-black leading-tight">Full Screen Mode?</p>
+                <p class="text-zinc-400 text-[11px] mt-0.5">Experience the mission in full glory, sir.</p>
+            </div>
+        </div>
+        <div class="flex items-center justify-end gap-3 pt-1">
+            <button id="no-thanks-btn" class="text-zinc-500 hover:text-white text-[11px] font-bold px-3 py-2 transition-colors uppercase">No Thanks</button>
+            <button id="fullscreen-btn" class="bg-yellow-500 text-black px-5 py-2 rounded-lg font-black text-xs hover:bg-yellow-400 active:scale-95 transition-all uppercase shadow-lg shadow-yellow-500/20">ENABLE</button>
+        </div>
+    </div>
+
     <div id="video-layer">
         <video id="gameOverVideo" playsinline preload="auto" crossOrigin="anonymous">
             <source src="https://files.catbox.moe/8vqslr.mp4" type="video/mp4">
@@ -221,24 +187,24 @@
     <canvas id="gameCanvas"></canvas>
 
     <div id="start-menu" class="hidden">
-        <h1 class="menu-title">MIRZA RUN</h1>
+        <h1 class="text-6xl font-black mb-8 text-yellow-400 italic drop-shadow-xl">MIRZA RUN</h1>
         <button id="startBtn" class="menu-btn">START GAME</button>
         <button id="exitBtnMain" class="menu-btn exit-btn">EXIT</button>
     </div>
 
     <div id="ui-layer">
-        <div class="score-card">
-            <p class="score-title">চাঁদা: <span id="scoreVal">0</span></p>
-            <p class="record-title">RECORD: <span id="highScoreVal">0</span></p>
+        <div class="bg-black/60 backdrop-blur-md p-4 rounded-lg border-l-4 border-yellow-500 shadow-xl">
+            <p class="text-yellow-400 font-black text-2xl uppercase italic">চাঁদা: <span id="scoreVal">0</span></p>
+            <p class="text-cyan-400 text-xs font-mono mt-1">RECORD: <span id="highScoreVal">0</span></p>
         </div>
     </div>
 
     <div id="overlay" class="hidden">
-        <h1 class="game-over-title">ধরা খেয়ে গেসো!</h1>
-        <p id="finalScoreText" class="final-score-text"></p>
-        <div class="button-group">
+        <h1 class="text-5xl font-black text-red-600 mb-2 italic">ধরা খেয়ে গেসো!</h1>
+        <p id="finalScoreText" class="text-2xl text-yellow-400 mb-8 font-bold"></p>
+        <div class="flex gap-4">
             <button id="retryBtn" class="menu-btn">RETRY</button>
-            <button id="homeBtn" class="menu-btn home-btn-blue">HOME</button>
+            <button id="homeBtn" class="menu-btn" style="background: #3b82f6; color: white;">HOME</button>
         </div>
     </div>
 
@@ -257,6 +223,9 @@
     const highScoreVal = document.getElementById('highScoreVal');
     const uiLayer = document.getElementById('ui-layer');
     const loadProgress = document.getElementById('load-progress');
+    const notifyPopup = document.getElementById('notify-popup');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const noThanksBtn = document.getElementById('no-thanks-btn');
 
     const sounds = {
         coinSfx: new Audio('https://files.catbox.moe/4q2wx6.mp3'),
@@ -296,10 +265,25 @@
                 setTimeout(() => {
                     document.getElementById('loading-screen').classList.add('hidden');
                     startMenu.classList.remove('hidden');
+                    setTimeout(() => {
+                        if(!document.fullscreenElement) notifyPopup.classList.add('active');
+                    }, 1000);
                 }, 500);
             }
         };
     });
+
+    fullscreenBtn.onclick = () => {
+        if(document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(() => {});
+        }
+        notifyPopup.classList.remove('active');
+        unlockAudio();
+    };
+
+    noThanksBtn.onclick = () => {
+        notifyPopup.classList.remove('active');
+    };
 
     let gameActive = false;
     let score = 0;
@@ -361,6 +345,7 @@
     };
 
     function startGame() {
+        notifyPopup.classList.remove('active');
         unlockAudio();
         preWarmVideo();
         gameActive = true;
